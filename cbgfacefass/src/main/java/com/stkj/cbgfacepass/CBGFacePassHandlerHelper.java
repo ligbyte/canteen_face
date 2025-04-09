@@ -5,6 +5,7 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.os.Environment;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Pair;
 
 import com.stkj.cbgfacepass.model.CBGFacePassConfig;
@@ -52,10 +53,11 @@ import mcv.facepass.types.FacePassTrackOptions;
  */
 public class CBGFacePassHandlerHelper extends ActivityWeakRefHolder {
 
+    public final static String TAG = "CBGFacePassHandlerHelper";
     private static final String CERT_FILE_NAME = "CBG_Android_Face_Reco---36500-Formal-two-stage.cert";
     private static final String ACTIVE_FILE_NAME = "CBG_Android_Face_Reco---36500-Formal--1-active.txt";
     private static final String DEFAULT_FACE_PASS_GROUP = "facepass";
-
+    private final static int topK = 5;
     private CBGFacePassConfig mCbgFacePassConfig;
     private FacePassHandler mFacePassHandler;
     private OnInitFacePassListener onInitFacePassListener;
@@ -315,38 +317,48 @@ public class CBGFacePassHandlerHelper extends ActivityWeakRefHolder {
                         try {
                             RecognizeData recognizeData = mRecognizeDataQueue.take();
                             if (recognizeData != null) {
-                                FacePassRecognitionResult[] recognizeResultArray = null;
+                                FacePassRecognitionResult[][] recognizeResultArray = null;
                                 if (recognizeFrameTask.get()) {
-                                    recognizeResultArray = mFacePassHandler.recognize(DEFAULT_FACE_PASS_GROUP, recognizeData.message, recognizeData.trackOpt);
+                                    recognizeResultArray = mFacePassHandler.recognize(DEFAULT_FACE_PASS_GROUP, recognizeData.message, topK,recognizeData.trackOpt);
                                 }
                                 LogHelper.print("--CBGFacePassHandlerHelper-startRecognizeFrameTask--recognizeResultArray = " + (recognizeResultArray == null ? "null" : recognizeResultArray.length));
                                 if (recognizeResultArray != null && recognizeResultArray.length > 0) {
                                     List<CBGFacePassRecognizeResult> faceTokenList = new ArrayList<>();
-                                    for (FacePassRecognitionResult recognizeResult : recognizeResultArray) {
-                                        if (recognizeResult != null) {
-                                            int resultSearchScoreThreshold = 75;
-                                            if (mCbgFacePassConfig != null) {
-                                                resultSearchScoreThreshold = mCbgFacePassConfig.getResultSearchScoreThreshold();
+                                    Log.i(TAG, "limefaceTokenList recognizeResultArray: " + recognizeResultArray.length);
+
+                                    for (int i = 0; i < recognizeResultArray.length; i++)
+                                    {
+                                        for (FacePassRecognitionResult recognizeResult : recognizeResultArray[i]) {
+                                            if (recognizeResult != null) {
+                                                int resultSearchScoreThreshold = 75;
+                                                if (mCbgFacePassConfig != null) {
+                                                    resultSearchScoreThreshold = mCbgFacePassConfig.getResultSearchScoreThreshold();
+                                                }
+                                                Log.i(TAG, "limefaceTokenList recognizeResult.faceToken: " + new String(recognizeResult.faceToken, StandardCharsets.ISO_8859_1));
+                                                Log.d(TAG, "limefaceTokenList recognizeResult.detail.searchScore: " + recognizeResult.detail.searchScore);
+                                                //判断人脸相似程度 >=75表示成功 否侧失败处理
+                                                if (recognizeResult.detail != null && recognizeResult.detail.searchScore < resultSearchScoreThreshold) {
+                                                    continue;
+                                                }
+                                                String faceToken = new String(recognizeResult.faceToken, StandardCharsets.ISO_8859_1);
+                                                if (!TextUtils.isEmpty(faceToken)) {
+                                                    boolean passSuccess = FacePassRecognitionState.RECOGNITION_PASS == recognizeResult.recognitionState;
+                                                    CBGFacePassRecognizeResult facePassRecognizeResult = new CBGFacePassRecognizeResult(faceToken, passSuccess, recognizeResult.recognitionState);
+                                                    faceTokenList.add(facePassRecognizeResult);
+                                                }
+                                                LogHelper.print("--CBGFacePassHandlerHelper-startRecognizeFrameTask--recognizeResult faceToken = " + faceToken + " recognitionState=" + recognizeResult.recognitionState);
                                             }
-                                            //判断人脸相似程度 >=75表示成功 否侧失败处理
-                                            if (recognizeResult.detail != null && recognizeResult.detail.searchScore < resultSearchScoreThreshold) {
-                                                continue;
-                                            }
-                                            String faceToken = new String(recognizeResult.faceToken, StandardCharsets.ISO_8859_1);
-                                            if (!TextUtils.isEmpty(faceToken)) {
-                                                boolean passSuccess = FacePassRecognitionState.RECOGNITION_PASS == recognizeResult.recognitionState;
-                                                CBGFacePassRecognizeResult facePassRecognizeResult = new CBGFacePassRecognizeResult(faceToken, passSuccess, recognizeResult.recognitionState);
-                                                faceTokenList.add(facePassRecognizeResult);
-                                            }
-                                            LogHelper.print("--CBGFacePassHandlerHelper-startRecognizeFrameTask--recognizeResult faceToken = " + faceToken + " recognitionState=" + recognizeResult.recognitionState);
                                         }
+
                                     }
+
                                     if (!faceTokenList.isEmpty()) {
                                         LogHelper.print("--CBGFacePassHandlerHelper-stopFacePass-faceTokenList:" + faceTokenList.size());
                                         runUIThreadWithCheck(new Runnable() {
                                             @Override
                                             public void run() {
                                                 if (onDetectFaceListener != null) {
+
                                                     onDetectFaceListener.onDetectFaceToken(faceTokenList);
                                                 }
                                             }

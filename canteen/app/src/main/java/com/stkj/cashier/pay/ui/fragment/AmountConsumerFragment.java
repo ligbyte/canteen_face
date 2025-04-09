@@ -4,6 +4,7 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 
+import com.stkj.cashier.MainApplication;
 import com.stkj.cashier.R;
 import com.stkj.cashier.base.callback.OnConsumerConfirmListener;
 import com.stkj.cashier.base.utils.CommonDialogUtils;
@@ -78,6 +79,7 @@ public class AmountConsumerFragment extends BasePayHelperFragment implements OnP
         if (goToPay == NORMAL_TO_PAY) {
             scCalc.setCalcEnable(false);
             scCalc.setConfirmTxt("取消结算");
+            MainApplication.isUnLockFrame = true;
         } else {
             CommonDialogUtils.showTipsDialog(mActivity, getGoToPayStatus(goToPay));
         }
@@ -87,6 +89,7 @@ public class AmountConsumerFragment extends BasePayHelperFragment implements OnP
      * 取消金额结算
      */
     private void stopAmountPay() {
+
         speakTTSVoice("取消结算");
         stopToPay();
         scCalc.setCalcEnable(true);

@@ -182,7 +182,7 @@ android {
         telpo_c50a_pro {
             dimension "device"
             buildConfigField('String', 'deviceInterface', '\"com.stkj.device.telpo_c50a_pro.DeviceImpl\"')
-            buildConfigField('String', 'deviceType', '\"telpo_c50a_pro\"')
+            buildConfigField('String', 'deviceType', '\"cashier_telpo_c50a_pro\"')
             manifestPlaceholders = [
                     shareUserId: "android.uid.system"
             ]

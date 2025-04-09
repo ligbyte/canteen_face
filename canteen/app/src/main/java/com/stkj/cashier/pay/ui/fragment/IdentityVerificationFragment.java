@@ -364,7 +364,7 @@ public abstract class IdentityVerificationFragment extends BaseRecyclerFragment 
                  facePassHelperDuo.searchFacePassByFaceToken(faceTokenList.get(i).getFaceToken(), new FacePassHelper.OnHandleFaceTokenListener() {
                      @Override
                      public void onHandleLocalFace(String faceToken, FacePassPeopleInfo facePassPeopleInfo) {
-                         mMenuItems.add(new DialogMenuItem(facePassPeopleInfo.getFull_Name(), R.mipmap.ic_user_face));
+                         mMenuItems.add(new DialogMenuItem(facePassPeopleInfo.getFull_Name(), R.mipmap.ic_user_face,facePassPeopleInfo.getImgData()));
                          if (mMenuItems.size() == faceTokenList.size()) {
                              if (listDialog == null || !listDialog.isShowing()) {
                                  stopAllAuth();
@@ -423,6 +423,8 @@ public abstract class IdentityVerificationFragment extends BaseRecyclerFragment 
         listDialog = new NormalListDialog(mActivity, mMenuItems);
         listDialog.title("请选择用户")
                 .titleBgColor(Color.parseColor("#3AA5FF"))
+                .heightScale(0.5f)
+                .widthScale(0.5f)
                 .showAnim(new ZoomInEnter())
                 .dismissAnim(new ZoomInExit())
                 .show();
